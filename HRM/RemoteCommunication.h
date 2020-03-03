@@ -41,18 +41,13 @@ public:
 	property bool bServerRunning;
 
 private:
-
 	MiBand3^ MiBand;
-
-
 
 	Platform::String^ RCHostName = L"localhost";
 	Platform::String^ ClientPort = L"1242";
 	Platform::String^ ServerPort = L"1243";
 
 	bool bWaitingClientConnection;
-
-
 
 	void OnConnection(StreamSocketListener^ Listener, StreamSocketListenerConnectionReceivedEventArgs^ Args);
 
@@ -79,4 +74,3 @@ private:
 	 */
 	void ReceiveStringLoop(DataReader^ Reader, StreamSocket^ Socket);
 };
-

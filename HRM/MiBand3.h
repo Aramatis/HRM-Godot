@@ -28,7 +28,6 @@ using namespace Windows::Devices::Enumeration;
 using namespace Windows::Networking::Sockets;
 using namespace Windows::Storage::Streams;
 
-
 ref class RemoteCommunication;
 
 ref class MiBand3 sealed
@@ -62,7 +61,7 @@ public:
 
 private:
 	concurrency::task<void> InConnect(unsigned long long BluetoothAddress);
-	concurrency::task<void> Initialize(/*unsigned long long BluetoothAddress*/BluetoothLEDevice^ InDevice);
+	concurrency::task<void> Initialize(/*unsigned long long BluetoothAddress*/ BluetoothLEDevice^ InDevice);
 	concurrency::task<void> Authentication();
 
 	concurrency::task<void> Run();
@@ -71,13 +70,12 @@ private:
 	concurrency::task<void> WriteToCharacteristic(GenericAttributeProfile::GattCharacteristic^ Characteristic, std::vector<unsigned char> Data);
 	concurrency::task<void> WriteToDescriptor(GenericAttributeProfile::GattDescriptor^ Descriptor, std::vector<unsigned char> Data);
 
-	concurrency::task<void> EnableNotifications(GenericAttributeProfile::GattDescriptor^ Descriptor, GenericAttributeProfile::GattCharacteristic^ Characteristic, concurrency::task<void>(MiBand3::*HandleNotifications)(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args));
+	concurrency::task<void> EnableNotifications(GenericAttributeProfile::GattDescriptor^ Descriptor, GenericAttributeProfile::GattCharacteristic^ Characteristic, concurrency::task<void>(MiBand3::* HandleNotifications)(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args));
 	concurrency::task<void> EnableAuthenticationNotifications();
 	concurrency::task<void> HandleAuthenticationNotifications(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args);
 	concurrency::task<void> SendNewKey(std::vector<unsigned char> Key);
 	concurrency::task<void> RequestRandomKey();
 	concurrency::task<void> SendEncryptedKey(std::vector<unsigned char> Encrypted);
-
 
 	concurrency::task<void> HandleHeartRateNotifications(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args);
 
@@ -87,21 +85,14 @@ private:
 
 	void CheckReset();
 
-
-
 	uint8 HeartRateCounter;
 	uint8 HeartRateLastCounter;
 
-
-
-
 	concurrency::task<void> InWriteToServer(Platform::String^ Message);
-
 
 	std::vector<unsigned char> Concat(std::vector<unsigned char> Prefix, std::vector<unsigned char> Data);
 
-
-	std::vector<unsigned char> Encrypt(unsigned char *Data, unsigned char *Key);
+	std::vector<unsigned char> Encrypt(unsigned char* Data, unsigned char* Key);
 	Platform::Guid GetGuidFromString(std::string Guid);
 	Platform::Guid GetGuidFromStringBase(std::string SubGuid);
 
@@ -129,10 +120,10 @@ private:
 	GenericAttributeProfile::GattCharacteristic^ CharacteristicAlertNotificationControlPoint;
 	GenericAttributeProfile::GattDescriptor^ DescriptorClientCharacteristicConfiguration;
 
-	concurrency::timer<int> *HeartRatePingTimer;
-	concurrency::timer<int> *HeartRateCounterTimer;
-	concurrency::timer<int> *HeartRateCounterDelayTimer;
-	concurrency::timer<int> *VibratePingTimer;
+	concurrency::timer<int>* HeartRatePingTimer;
+	concurrency::timer<int>* HeartRateCounterTimer;
+	concurrency::timer<int>* HeartRateCounterDelayTimer;
+	concurrency::timer<int>* VibratePingTimer;
 
 	concurrency::event Authenticated;
 	concurrency::event HeartMeasureReaded;

@@ -3,9 +3,6 @@
 
 #include "pch.h"
 
-
-
-
 #include "MiBand3.h"
 #include "RemoteCommunication.h"
 
@@ -13,7 +10,6 @@ using namespace Windows::Devices::Bluetooth;
 using namespace Windows::Devices::Enumeration;
 using namespace Windows::Networking::Sockets;
 using namespace Windows::Storage::Streams;
-
 
 std::wstring FormatBluetoothAddress(unsigned long long BluetoothAddress)
 {
@@ -28,7 +24,6 @@ std::wstring FormatBluetoothAddress(unsigned long long BluetoothAddress)
 	return Address.str();
 }
 
-
 int main(Platform::Array<Platform::String^>^ args)
 {
 	MiBand3^ MB3 = ref new MiBand3();
@@ -36,34 +31,29 @@ int main(Platform::Array<Platform::String^>^ args)
 	MB3->RC->StartServer();
 	//MB3->RC->StartClient();
 
-
-
 	Advertisement::BluetoothLEAdvertisementWatcher^ AdvertisementWatcher = ref new Advertisement::BluetoothLEAdvertisementWatcher();
 	AdvertisementWatcher->ScanningMode = Advertisement::BluetoothLEScanningMode::Active;
-	AdvertisementWatcher->Received += ref new Windows::Foundation::TypedEventHandler<Advertisement::BluetoothLEAdvertisementWatcher ^, Advertisement::BluetoothLEAdvertisementReceivedEventArgs ^>(
-		[AdvertisementWatcher, MB3](Advertisement::BluetoothLEAdvertisementWatcher^ Watcher, Advertisement::BluetoothLEAdvertisementReceivedEventArgs^ EventArgs)
-	{
-		unsigned int Index;
-		if (EventArgs->Advertisement->ServiceUuids->IndexOf(MB3->UUIDServiceInfo, &Index)/* && EventArgs->BluetoothAddress == 0xcac40a8840d8*/)
-		{
-			Platform::String^ StrAddress = ref new Platform::String(FormatBluetoothAddress(EventArgs->BluetoothAddress).c_str());
-			std::wcout << "Device: " << StrAddress->Data() << std::endl;
-
-			if (MB3->bAuthenticated)
+	AdvertisementWatcher->Received += ref new Windows::Foundation::TypedEventHandler<Advertisement::BluetoothLEAdvertisementWatcher^, Advertisement::BluetoothLEAdvertisementReceivedEventArgs^>(
+		[AdvertisementWatcher, MB3](Advertisement::BluetoothLEAdvertisementWatcher^ Watcher, Advertisement::BluetoothLEAdvertisementReceivedEventArgs^ EventArgs) {
+			unsigned int Index;
+			if (EventArgs->Advertisement->ServiceUuids->IndexOf(MB3->UUIDServiceInfo, &Index) /* && EventArgs->BluetoothAddress == 0xcac40a8840d8*/)
 			{
-				AdvertisementWatcher->Stop();
+				Platform::String^ StrAddress = ref new Platform::String(FormatBluetoothAddress(EventArgs->BluetoothAddress).c_str());
+				std::wcout << "Device: " << StrAddress->Data() << std::endl;
+
+				if (MB3->bAuthenticated)
+				{
+					AdvertisementWatcher->Stop();
+				}
+
+				MB3->WriteToServer(StrAddress);
+
+				//AdvertisementWatcher->Stop();
+
+				// Separate this
+				//MB3->Connect(EventArgs->BluetoothAddress);
 			}
-
-			MB3->WriteToServer(StrAddress);
-
-
-
-			//AdvertisementWatcher->Stop();
-
-			// Separate this
-			//MB3->Connect(EventArgs->BluetoothAddress);
-		}
-	});
+		});
 	AdvertisementWatcher->Start();
 
 	int a;

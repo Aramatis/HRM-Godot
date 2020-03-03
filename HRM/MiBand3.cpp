@@ -4,7 +4,6 @@
 #include "RemoteCommunication.h"
 #include <algorithm>
 
-
 MiBand3::MiBand3()
 {
 	RC = ref new RemoteCommunication(this);
@@ -28,7 +27,7 @@ void MiBand3::Connect(unsigned long long BluetoothAddress)
 
 concurrency::task<void> MiBand3::InConnect(unsigned long long BluetoothAddress)
 {
-	co_await Initialize(/*BluetoothAddress*/co_await BluetoothLEDevice::FromBluetoothAddressAsync(BluetoothAddress));
+	co_await Initialize(/*BluetoothAddress*/ co_await BluetoothLEDevice::FromBluetoothAddressAsync(BluetoothAddress));
 
 	co_await Authentication();
 
@@ -86,10 +85,8 @@ concurrency::task<void> MiBand3::Run()
 	//Vibrate();
 
 	EnableHeartRateNotifications();
-	
 
-	WriteMessage((uint8 *)u8"· o ·)>", 9);
-
+	WriteMessage((uint8*)u8"ï¿½ o ï¿½)>", 9);
 
 	std::string ConnectedString = "Connected";
 	auto ConnectedWString = std::wstring(ConnectedString.begin(), ConnectedString.end());
@@ -102,7 +99,6 @@ concurrency::task<void> MiBand3::Run()
 
 	//RC->StartServer();
 
-
 	//concurrency::call<int> VibratePingCallback([this](int)
 	//{
 	//	Vibrate(1000);
@@ -112,31 +108,29 @@ concurrency::task<void> MiBand3::Run()
 
 	//VibratePingTimer->start();
 
+		// Fix to VS error
+	auto _this = this;
 
-
-	concurrency::call<int> HeartRatePingCallback([this](int)
-	{
-		HeartRatePing();
-	});
+	concurrency::call<int> HeartRatePingCallback([_this](int) {
+		_this->HeartRatePing();
+		});
 
 	HeartRatePingTimer = new concurrency::timer<int>(12000, 0, &HeartRatePingCallback, true);
 	//HeartRatePingTimer = new concurrency::timer<int>(1000, 0, &HeartRatePingCallback, true);
 
 	//HeartRatePingTimer->start();
 
-	concurrency::call<int> HeartRateCounteDelayCallback([this](int)
-	{
+	concurrency::call<int> HeartRateCounteDelayCallback([_this](int) {
 		std::cout << "Delayed End" << std::endl;
-		HeartRateCounterDelayTimer->pause();
-		HeartRateCounterTimer->start();
-	});
+		_this->HeartRateCounterDelayTimer->pause();
+		_this->HeartRateCounterTimer->start();
+		});
 
 	HeartRateCounterDelayTimer = new concurrency::timer<int>(20000, 0, &HeartRateCounteDelayCallback, true);
 
-	concurrency::call<int> HeartRateCounterCallback([this](int)
-	{
-		CheckReset();
-	});
+	concurrency::call<int> HeartRateCounterCallback([_this](int) {
+		_this->CheckReset();
+		});
 
 	HeartRateCounterTimer = new concurrency::timer<int>(7000, 0, &HeartRateCounterCallback, true);
 	//HeartRateCounterTimer = new concurrency::timer<int>(1000, 0, &HeartRateCounterCallback, true);
@@ -150,7 +144,6 @@ concurrency::task<void> MiBand3::Run()
 	//concurrency::wait(100000);
 	//std::cout << "Ended" << std::endl;
 	//co_await HeartMeasureStop();
-
 
 	// Change for a wait or something
 	int a;
@@ -172,11 +165,11 @@ concurrency::task<Platform::Array<unsigned char>^> MiBand3::ReadFromCharacterist
 		auto DataReader = Windows::Storage::Streams::DataReader::FromBuffer(Data->Value);
 		auto Bytes = ref new Platform::Array<unsigned char>(DataReader->UnconsumedBufferLength);
 		DataReader->ReadBytes(Bytes);
-		return Bytes;
+		co_return Bytes;
 	}
 	else
 	{
-		return ref new Platform::Array<unsigned char>(0);
+		co_return ref new Platform::Array<unsigned char>(0);
 	}
 }
 
@@ -184,7 +177,7 @@ concurrency::task<void> MiBand3::WriteToCharacteristic(GenericAttributeProfile::
 {
 	auto Writer = ref new DataWriter();
 	Writer->WriteBytes(ref new Platform::Array<unsigned char>(Data.data(), static_cast<unsigned int>(Data.size())));
-	/*auto status = */co_await Characteristic->WriteValueAsync(Writer->DetachBuffer());
+	/*auto status = */ co_await Characteristic->WriteValueAsync(Writer->DetachBuffer());
 	//std::wcout << "Write result: " << status.ToString()->Data() << std::endl;
 }
 
@@ -192,11 +185,11 @@ concurrency::task<void> MiBand3::WriteToDescriptor(GenericAttributeProfile::Gatt
 {
 	auto Writer = ref new DataWriter();
 	Writer->WriteBytes(ref new Platform::Array<unsigned char>(Data.data(), static_cast<unsigned int>(Data.size())));
-	/*auto status = */co_await DescriptorAuthentication->WriteValueAsync(Writer->DetachBuffer());
+	/*auto status = */ co_await DescriptorAuthentication->WriteValueAsync(Writer->DetachBuffer());
 	//std::wcout << "Write result: " << status.ToString()->Data() << std::endl;
 }
 
-concurrency::task<void> MiBand3::EnableNotifications(GenericAttributeProfile::GattDescriptor^ Descriptor, GenericAttributeProfile::GattCharacteristic^ Characteristic, concurrency::task<void>(MiBand3::*HandleNotifications)(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args))
+concurrency::task<void> MiBand3::EnableNotifications(GenericAttributeProfile::GattDescriptor^ Descriptor, GenericAttributeProfile::GattCharacteristic^ Characteristic, concurrency::task<void>(MiBand3::* HandleNotifications)(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args))
 {
 	// Enable notifications
 	co_await WriteToDescriptor(Descriptor, { 0x01, 0x00 });
@@ -207,11 +200,11 @@ concurrency::task<void> MiBand3::EnableNotifications(GenericAttributeProfile::Ga
 		std::cout << "Enable notifications error." << std::endl;
 	}
 	// Handle notifications
+	auto _this = this;
 	Characteristic->ValueChanged += ref new Windows::Foundation::TypedEventHandler<GenericAttributeProfile::GattCharacteristic^, GenericAttributeProfile::GattValueChangedEventArgs^>(
-		[this, HandleNotifications](GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args)
-	{
-		(this->*HandleNotifications)(Sender, Args);
-	});
+		[_this, HandleNotifications](GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args) {
+			(_this->*HandleNotifications)(Sender, Args);
+		});
 }
 
 concurrency::task<void> MiBand3::EnableAuthenticationNotifications()
@@ -359,13 +352,12 @@ void MiBand3::HeartRatePing()
 {
 	//std::cout << "Ping" << std::endl;
 	WriteToCharacteristic(CharacteristicHeartRateControlPoint, { 0x16 }); // Ping
-	//co_await Vibrate();
+																		//co_await Vibrate();
 }
 
 void MiBand3::HeartRateStop()
 {
 	WriteToCharacteristic(CharacteristicHeartRateControlPoint, { 0x15, 0x01, 0x00 }); // Disable continuous
-
 
 	if (HeartRateCounterTimer)
 	{
@@ -407,7 +399,6 @@ void MiBand3::WriteToServer(Platform::String^ Message)
 	InWriteToServer(Message);
 }
 
-
 concurrency::task<void> MiBand3::InWriteToServer(Platform::String^ Message)
 {
 	if (RC->bClientConnected)
@@ -436,11 +427,11 @@ std::vector<unsigned char> MiBand3::Concat(std::vector<unsigned char> Prefix, st
 }
 
 // Encrypt using aes ecb 128 no padding
-std::vector<unsigned char> MiBand3::Encrypt(unsigned char *Data, unsigned char *Key)
+std::vector<unsigned char> MiBand3::Encrypt(unsigned char* Data, unsigned char* Key)
 {
 	int OutLenght;
 	unsigned char Encrypted[16];
-	EVP_CIPHER_CTX *Context = EVP_CIPHER_CTX_new();
+	EVP_CIPHER_CTX* Context = EVP_CIPHER_CTX_new();
 	EVP_EncryptInit_ex(Context, EVP_aes_128_ecb(), NULL, Key, NULL);
 	EVP_CIPHER_CTX_set_padding(Context, 0);
 	EVP_EncryptUpdate(Context, Encrypted, &OutLenght, Data, 16);
