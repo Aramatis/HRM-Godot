@@ -1,5 +1,4 @@
 // HRM.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
 
 #include "pch.h"
 
@@ -29,7 +28,6 @@ int main(Platform::Array<Platform::String^>^ args)
 	MiBand3^ MB3 = ref new MiBand3();
 
 	MB3->RC->StartServer();
-	//MB3->RC->StartClient();
 
 	Advertisement::BluetoothLEAdvertisementWatcher^ AdvertisementWatcher = ref new Advertisement::BluetoothLEAdvertisementWatcher();
 	AdvertisementWatcher->ScanningMode = Advertisement::BluetoothLEScanningMode::Active;
@@ -47,11 +45,6 @@ int main(Platform::Array<Platform::String^>^ args)
 				}
 
 				MB3->WriteToServer(StrAddress);
-
-				//AdvertisementWatcher->Stop();
-
-				// Separate this
-				//MB3->Connect(EventArgs->BluetoothAddress);
 			}
 		});
 	AdvertisementWatcher->Start();

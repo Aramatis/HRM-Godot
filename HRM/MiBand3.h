@@ -10,15 +10,10 @@
 #include <ppltasks.h>
 #include <pplawait.h>
 #include <ppl.h>
-//#include <Windows.h>
 #include <collection.h>
-////#include <Windows.Foundation.h>
 #include <Windows.Devices.Bluetooth.h>
 #include <Windows.Devices.Enumeration.h>
 #include <Windows.Networking.Sockets.h>
-
-//#include <winrt/Windows.Foundation.h>
-
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
@@ -61,7 +56,7 @@ public:
 
 private:
 	concurrency::task<void> InConnect(unsigned long long BluetoothAddress);
-	concurrency::task<void> Initialize(/*unsigned long long BluetoothAddress*/ BluetoothLEDevice^ InDevice);
+	concurrency::task<void> Initialize(BluetoothLEDevice^ InDevice);
 	concurrency::task<void> Authentication();
 
 	concurrency::task<void> Run();

@@ -9,14 +9,10 @@
 #include <ppltasks.h>
 #include <pplawait.h>
 #include <ppl.h>
-//#include <Windows.h>
 #include <collection.h>
-////#include <Windows.Foundation.h>
 #include <Windows.Devices.Bluetooth.h>
 #include <Windows.Devices.Enumeration.h>
 #include <Windows.Networking.Sockets.h>
-
-//#include <winrt/Windows.Foundation.h>
 
 using namespace Windows::Devices::Bluetooth;
 using namespace Windows::Devices::Enumeration;

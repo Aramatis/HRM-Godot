@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "RemoteCommunication.h"
-
 #include "MiBand3.h"
-
 #include "intrin.h"
 #include <algorithm>
 #include <comdef.h>
@@ -61,9 +59,6 @@ void RemoteCommunication::StartClient()
 		bWaitingClientConnection = true;
 		// The server hostname that we will be establishing a connection to. In this example, the server and client are in the same process.
 		auto InHostName = ref new Windows::Networking::HostName(RCHostName);
-
-		//while (!bClientConnected && Tries-- > 0)
-		//{
 		concurrency::create_task(ClientSocket->ConnectAsync(InHostName, ClientPort)).then([this](concurrency::task<void> PreviousTask) {
 			try
 			{
@@ -104,7 +99,7 @@ void RemoteCommunication::StartServer()
 		{
 			// Try getting an exception.
 			PreviousTask.get();
-			std::cout << "Sever started" << std::endl;
+			std::cout << "Server started" << std::endl;
 		}
 		catch (Platform::Exception ^ Ex)
 		{
@@ -128,7 +123,7 @@ void RemoteCommunication::OnConnection(StreamSocketListener^ Listener, StreamSoc
 
 void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader, StreamSocket^ Socket)
 {
-	// Fist read the instruction id to execute.
+	// First read the instruction id to execute.
 	concurrency::create_task(Reader->LoadAsync(sizeof(byte))).then([this, Reader, Socket](unsigned int Size) {
 		if (Size < sizeof(byte))
 		{
@@ -168,7 +163,6 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader, StreamSocket^ So
 					concurrency::cancel_current_task();
 				}
 
-				//uint32 MessageSize = _byteswap_ulong(Reader->ReadUInt32());
 				uint32 MessageSize = Reader->ReadUInt32();
 
 				return concurrency::create_task(Reader->LoadAsync(MessageSize)).then([this, Reader, MessageSize](unsigned int Size) {
@@ -199,7 +193,6 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader, StreamSocket^ So
 						concurrency::cancel_current_task();
 					}
 
-					//uint32 MessageSize = _byteswap_ulong(Reader->ReadUInt32());
 					uint32 MessageSize = Reader->ReadUInt32();
 
 					return concurrency::create_task(Reader->LoadAsync(MessageSize)).then([this, Reader, MessageSize](unsigned int Size) {
