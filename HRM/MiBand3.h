@@ -44,7 +44,8 @@ public:
 
 	void Vibrate();
 
-	void WriteToServer(Platform::String^ Message);
+	void WriteToServer(
+		Platform::String^ Message, bool pad = false, bool prepend = false);
 
 	property Platform::Guid UUIDServiceInfo;
 	property Platform::Guid UUIDServiceAuthentication;
@@ -80,10 +81,11 @@ private:
 
 	void CheckReset();
 
-	uint8 HeartRateCounter;
-	uint8 HeartRateLastCounter;
+	uint32 HeartRateCounter;
+	uint32 HeartRateLastCounter;
 
-	concurrency::task<void> InWriteToServer(Platform::String^ Message, bool pad = false);
+	concurrency::task<void> InWriteToServer(
+		Platform::String^ Message, bool pad = false, bool prepend = false);
 
 	std::vector<unsigned char> Concat(std::vector<unsigned char> Prefix, std::vector<unsigned char> Data);
 

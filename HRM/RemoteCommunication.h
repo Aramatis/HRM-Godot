@@ -26,9 +26,9 @@ ref class RemoteCommunication sealed
 public:
 	RemoteCommunication(MiBand3^ InMiBand);
 
-	void StartClient();
+	void StartClient(int tries = 5);
 	void StopClient();
-	void StartServer();
+	void StartServer(int tries = 5);
 
 	property Windows::Networking::Sockets::StreamSocket^ ClientSocket;
 	property Windows::Networking::Sockets::StreamSocketListener^ ServerSocket;

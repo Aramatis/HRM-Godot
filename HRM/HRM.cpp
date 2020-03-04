@@ -27,9 +27,7 @@ int main(Platform::Array<Platform::String^>^ args)
 {
 	MiBand3^ MB3 = ref new MiBand3();
 
-	MB3->RC->StartServer();
-
-	std::wcout << "Started service" << "\n";
+	std::wcout << "Started service" << std::endl;
 
 	Advertisement::BluetoothLEAdvertisementWatcher^ AdvertisementWatcher = ref new Advertisement::BluetoothLEAdvertisementWatcher();
 	AdvertisementWatcher->ScanningMode = Advertisement::BluetoothLEScanningMode::Active;
@@ -47,7 +45,7 @@ int main(Platform::Array<Platform::String^>^ args)
 				}
 
 				// MB3->Connect(EventArgs->BluetoothAddress);
-				
+
 				AdvertisementWatcher->Stop();
 
 				while (!MB3->bAuthenticated) {
