@@ -83,7 +83,7 @@ private:
 	uint8 HeartRateCounter;
 	uint8 HeartRateLastCounter;
 
-	concurrency::task<void> InWriteToServer(Platform::String^ Message);
+	concurrency::task<void> InWriteToServer(Platform::String^ Message, bool pad = false);
 
 	std::vector<unsigned char> Concat(std::vector<unsigned char> Prefix, std::vector<unsigned char> Data);
 

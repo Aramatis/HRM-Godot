@@ -103,7 +103,7 @@ void RemoteCommunication::StartServer()
 		}
 		catch (Platform::Exception ^ Ex)
 		{
-			std::cout << "The server could't start" << std::endl;
+			std::cout << "The server couldn't start" << std::endl;
 
 			SocketErrorStatus WebErrorStatus = SocketError::GetStatus(Ex->HResult);
 			std::cout << (WebErrorStatus.ToString() != L"Unknown" ? WebErrorStatus.ToString() : Ex->Message)->Data() << std::endl;

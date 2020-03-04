@@ -29,6 +29,8 @@ int main(Platform::Array<Platform::String^>^ args)
 
 	MB3->RC->StartServer();
 
+	std::wcout << "Started service" << "\n";
+
 	Advertisement::BluetoothLEAdvertisementWatcher^ AdvertisementWatcher = ref new Advertisement::BluetoothLEAdvertisementWatcher();
 	AdvertisementWatcher->ScanningMode = Advertisement::BluetoothLEScanningMode::Active;
 	AdvertisementWatcher->Received += ref new Windows::Foundation::TypedEventHandler<Advertisement::BluetoothLEAdvertisementWatcher^, Advertisement::BluetoothLEAdvertisementReceivedEventArgs^>(
@@ -44,7 +46,13 @@ int main(Platform::Array<Platform::String^>^ args)
 					AdvertisementWatcher->Stop();
 				}
 
-				MB3->WriteToServer(StrAddress);
+				// MB3->Connect(EventArgs->BluetoothAddress);
+				
+				AdvertisementWatcher->Stop();
+
+				while (!MB3->bAuthenticated) {
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				}
 			}
 		});
 	AdvertisementWatcher->Start();

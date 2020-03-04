@@ -69,18 +69,11 @@ concurrency::task<void> MiBand3::Authentication()
 
 concurrency::task<void> MiBand3::Run()
 {
-	std::cout << "Test initialized" << std::endl;
+	std::cout << "Run initialized" << std::endl;
 
 	EnableHeartRateNotifications();
 
 	WriteMessage((uint8*)u8"� o �)>", 9);
-
-	std::string ConnectedString = "Connected";
-	auto ConnectedWString = std::wstring(ConnectedString.begin(), ConnectedString.end());
-
-	auto Message = ref new Platform::String(ConnectedWString.c_str());
-
-	InWriteToServer(Message);
 
 	concurrency::call<int> HeartRatePingCallback([this](int) {
 		HeartRatePing();
@@ -102,11 +95,17 @@ concurrency::task<void> MiBand3::Run()
 
 	HeartRateCounterTimer = new concurrency::timer<int>(7000, 0, &HeartRateCounterCallback, true);
 
+	HeartRateStart();
+
 	std::cout << "Started" << std::endl;
 
 	// Change for a wait or something
 	int a;
 	std::cin >> a;
+
+	HeartRateStop();
+
+	RC->StopClient();
 
 	std::cout << "Test finished" << std::endl;
 
@@ -232,13 +231,14 @@ concurrency::task<void> MiBand3::HandleHeartRateNotifications(GenericAttributePr
 	Windows::Storage::Streams::DataReader::FromBuffer(Args->CharacteristicValue)->ReadBytes(HeartRate);
 
 	auto HeartRateString = FormatHeartRate(HeartRate);
-	auto HeartRateWString = std::wstring(HeartRateString.begin(), HeartRateString.end());
 
 	std::cout << "Heart Rate: " << HeartRateString << std::endl;
 
+	auto HeartRateWString = std::wstring(HeartRateString.begin(), HeartRateString.end());
+
 	auto Message = ref new Platform::String(HeartRateWString.c_str());
 
-	InWriteToServer(Message);
+	InWriteToServer(Message, true);
 
 	++HeartRateCounter;
 
@@ -303,7 +303,7 @@ void MiBand3::HeartRateStart()
 
 void MiBand3::HeartRatePing()
 {
-	WriteToCharacteristic(CharacteristicHeartRateControlPoint, { 0x16 }); 
+	WriteToCharacteristic(CharacteristicHeartRateControlPoint, { 0x16 });
 }
 
 void MiBand3::HeartRateStop()
@@ -350,7 +350,7 @@ void MiBand3::WriteToServer(Platform::String^ Message)
 	InWriteToServer(Message);
 }
 
-concurrency::task<void> MiBand3::InWriteToServer(Platform::String^ Message)
+concurrency::task<void> MiBand3::InWriteToServer(Platform::String^ Message, bool pad)
 {
 	if (RC->bClientConnected)
 	{
@@ -358,6 +358,10 @@ concurrency::task<void> MiBand3::InWriteToServer(Platform::String^ Message)
 		auto Writer = ref new Windows::Storage::Streams::DataWriter(RC->ClientSocket->OutputStream);
 
 		Writer->WriteString(Message);
+
+		if (pad) {
+			Writer->WriteByte('\0');
+		}
 
 		co_await Writer->StoreAsync();
 
