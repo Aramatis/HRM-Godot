@@ -4,39 +4,11 @@
 #include "intrin.h"
 #include <algorithm>
 #include <comdef.h>
+#include "BlthUtil.h"
+#include <iostream>
 
-// Simple char to int representation converter
-int CharToInt(char Char)
-{
-	if (Char >= '0' && Char <= '9')
-	{
-		return Char - '0';
-	}
-	if (Char >= 'a' && Char <= 'f')
-	{
-		return Char - 'a' + 10;
-	}
-	return -1;
-}
 
-// Formats a bluetooth address to the format accepted by MiBand3->Connect
-unsigned long long FormatBluetoothAddressInverse(
-	Platform::Array<uint8>^ BluetoothAddress)
-{
-	uint64 Multiplier = 1;
-	unsigned long long Address = 0;
-	for (int i = BluetoothAddress->Length - 1; i >= 0; --i)
-	{
-		uint8 Number = BluetoothAddress[i];
-
-		if (Number != ':')
-		{
-			Address += CharToInt(Number) * Multiplier;
-			Multiplier *= 16;
-		}
-	}
-	return Address;
-}
+using namespace BluetoothUtilities;
 
 // Class that handles the remote communication between this HRM module and external
 // servers and connectors. Requires a MiBand3 reference, but no extra methods invoked
@@ -74,7 +46,7 @@ void RemoteCommunication::StartClient(int tries)
 			try
 			{
 				PreviousTask.get();
-				std::cout << "Client connected" << std::endl;
+				std::wcout << "Client connected" << std::endl;
 				bWaitingClientConnection = false;
 				bClientConnected = true;
 			}
@@ -83,7 +55,8 @@ void RemoteCommunication::StartClient(int tries)
 				bClientConnected = false;
 				std::cout << "The client couldn't connect with the server"
 					<< std::endl;
-
+				std::wcout << Ex->ToString()->Begin() << std::endl;
+				
 				SocketErrorStatus WebErrorStatus =
 					SocketError::GetStatus(Ex->HResult);
 				std::cout << (WebErrorStatus.ToString()
@@ -183,6 +156,8 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 			// Save the instruction ID
 			byte Id = Reader->ReadByte();
 
+			std::wcout << "Received instruction, ID = " << Id << std::endl;
+
 			// ID = 0 is an instruction to start (true) or stop (false) the client. 
 			if (Id == 0)
 			{
@@ -197,18 +172,27 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 					// Read the instruction
 					bool bStart = Reader->ReadBoolean();
 					// Start or stop the client
-					if (bStart)
+					if (bStart == 0)
 					{
-						StartClient();
+						std::cout << "Stop client" << std::endl;
+						StopClient();
 					}
 					else
 					{
-						StopClient();
+						std::cout << "Start client" << std::endl;
+						StartClient();
 					}
 						});
 			}
-			// ID = 1 is an instruction to connect to a MiBand3 in the given address.
-			else if (Id == 1)
+			// ID = 1 is an instruction to scan for peripherals for 20 seconds and
+			// send the addresses of the ones found. It carries no payload.
+			if (Id == 1)
+			{
+				// Start the scanner with the current MiBand3
+				scan(MiBand);
+			}
+			// ID = 2 is an instruction to connect to a MiBand3 in the given address.
+			else if (Id == 2)
 			{
 				return concurrency::create_task(Reader->LoadAsync(sizeof(uint32)))
 					.then([this, Reader](unsigned int Size) {
@@ -222,6 +206,8 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 					// Read the size (in bytes) of the address
 					uint32 MessageSize = Reader->ReadUInt32();
 
+					std::wcout << "Message size: " << MessageSize << std::endl;
+
 					return concurrency::create_task(Reader->LoadAsync(MessageSize))
 						.then([this, Reader, MessageSize](unsigned int Size) {
 						// If the size loaded was smaller than the size indicated the
@@ -230,12 +216,14 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 						{
 							concurrency::cancel_current_task();
 						}
-						
+
 						// Allocate space, read the address and format it
-						Platform::Array<uint8>^ Message = 
+						Platform::Array<uint8>^ Message =
 							ref new Platform::Array<uint8>(Size);
 						Reader->ReadBytes(Message);
 						auto Address = FormatBluetoothAddressInverse(Message);
+
+						std::wcout << "Message: " << Address << std::endl;
 
 						// Connect to the given address
 						MiBand->Connect(Address);
@@ -245,9 +233,9 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 			// All the following IDs require a MiBand3 connected and authenticated.
 			else if (MiBand->bAuthenticated)
 			{
-				// ID = 2 is an instruction to write a message to the connected
+				// ID = 3 is an instruction to write a message to the connected
 				// MiBand3.
-				if (Id == 2)
+				if (Id == 3)
 				{
 					return concurrency::create_task(
 						Reader->LoadAsync(sizeof(uint32)))
@@ -273,28 +261,30 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 							}
 
 							// Allocate space and read the message
-							Platform::Array<uint8>^ Message = 
+							Platform::Array<uint8>^ Message =
 								ref new Platform::Array<uint8>(Size);
 							Reader->ReadBytes(Message);
-							
+
 							// Write message to the MiBand3
 							MiBand->WriteMessage(Message->Data, Size);
+								});
 							});
-						});
 				}
-				// ID = 3 is an instruction to start (true) or stop (false) the Heart
+				// ID = 4 is an instruction to start (true) or stop (false) the Heart
 				// Rate Monitoring.
-				else if (Id == 3)
+				else if (Id == 4)
 				{
+					std::wcout << "Inside ID 4" << std::endl;
 					return concurrency::create_task(Reader->LoadAsync(sizeof(bool)))
 						.then([this, Reader](unsigned int Size) {
 						// If the size loaded was smaller than the size of a bool the 
 						// socket was closed before reading the whole data.
+						std::wcout << "Size: " << Size << std::endl;
 						if (Size < sizeof(bool))
 						{
 							concurrency::cancel_current_task();
 						}
-						
+
 						// Read the instruction
 						bool bStart = Reader->ReadBoolean();
 						// Start or stop the HRM service
@@ -306,11 +296,11 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 						{
 							MiBand->HeartRateStop();
 						}
-						});
+							});
 				}
-				// ID = 4 is an instruction to vibrate the MiBand3 for the given 
+				// ID = 5 is an instruction to vibrate the MiBand3 for the given 
 				// amoumt of milliseconds.
-				else if (Id == 4)
+				else if (Id == 5)
 				{
 					return concurrency::create_task(Reader->
 						LoadAsync(sizeof(uint16)))
@@ -326,12 +316,12 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 						uint16 Seconds = Reader->ReadUInt16();
 						// Vibrate the MiBand3
 						MiBand->Vibrate(Seconds);
-						});
+							});
 				}
 
-				// ID = 4 is an instruction to vibrate the MiBand3 for the given 
+				// ID = 6 is an instruction to vibrate the MiBand3 for the standard
 				// amoumt of milliseconds. It isn't followed by any payload.
-				else if (Id == 5)
+				else if (Id == 6)
 				{
 					// Vibrate the MiBand3
 					MiBand->Vibrate();
@@ -340,7 +330,7 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 			return concurrency::create_task([] {});
 		})
 		// Restart the loop to receive messages.
-		.then([this, Reader, Socket](concurrency::task<void> PreviousTask) {
+			.then([this, Reader, Socket](concurrency::task<void> PreviousTask) {
 			try
 			{
 				PreviousTask.get();
@@ -361,5 +351,5 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 				// Explicitly close the socket.
 				delete Socket;
 			}
-			});
+				});
 }

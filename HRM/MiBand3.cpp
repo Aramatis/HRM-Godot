@@ -37,61 +37,42 @@ void MiBand3::Connect(unsigned long long BluetoothAddress)
 concurrency::task<void> MiBand3::InConnect(unsigned long long BluetoothAddress)
 {
 	// Initializes the connection with the peripheral
+	std::wcout << "Before Init" << std::endl;
 	co_await Initialize(co_await BluetoothLEDevice::FromBluetoothAddressAsync(BluetoothAddress));
 	// Authenticates the connection
+	std::wcout << "Before Auth" << std::endl;
 	co_await Authentication();
 	Authenticated.wait();
+	std::wcout << "After Auth" << std::endl;
 	bAuthenticated = true;
-
-	co_await Run();
+	Authenticated.reset();
+	Connected.set();
 }
 
-concurrency::task<void> MiBand3::Initialize(BluetoothLEDevice^ InDevice)
+// Standard HRM behaviour
+concurrency::task<void> MiBand3::RunHRM()
 {
-	Device = InDevice;
+	// Waits for authentication ending
+	if (!this->bAuthenticated) {
+		std::wcout << "Waiting auth" << std::endl;
+		Connected.wait();
+	}
+	Connected.reset();
 
-	ServiceAuthentication = (co_await Device->GetGattServicesForUuidAsync(UUIDServiceAuthentication))->Services->GetAt(0);
-	CharacteristicAuthentication = (co_await ServiceAuthentication->GetCharacteristicsForUuidAsync(GetGuidFromStringBase("0009")))->Characteristics->GetAt(0);
-	DescriptorAuthentication = (co_await CharacteristicAuthentication->GetDescriptorsForUuidAsync(BluetoothUuidHelper::FromShortId(0x2902)))->Descriptors->GetAt(0);
+	std::cout << "Running MiBand3 HRM" << std::endl;
 
-	ServiceHeartRate = (co_await Device->GetGattServicesForUuidAsync(UUIDServiceHeartRate))->Services->GetAt(0);
-	CharacteristicHeartRateControlPoint = (co_await ServiceHeartRate->GetCharacteristicsForUuidAsync(BluetoothUuidHelper::FromShortId(0x2a39)))->Characteristics->GetAt(0);
-	CharacteristicHeartRateMeasurement = (co_await ServiceHeartRate->GetCharacteristicsForUuidAsync(BluetoothUuidHelper::FromShortId(0x2a37)))->Characteristics->GetAt(0);
-	DescriptorHeartRateMeasurement = (co_await CharacteristicHeartRateMeasurement->GetDescriptorsForUuidAsync(BluetoothUuidHelper::FromShortId(0x2902)))->Descriptors->GetAt(0);
-
-	ServiceInmediateAlert = (co_await Device->GetGattServicesForUuidAsync(UUIDServiceInmediateAlert))->Services->GetAt(0);
-	CharacteristicAlert = (co_await ServiceInmediateAlert->GetCharacteristicsForUuidAsync(BluetoothUuidHelper::FromShortId(0x2a06)))->Characteristics->GetAt(0);
-
-	ServiceAlertNotification = (co_await Device->GetGattServicesForUuidAsync(UUIDServiceAlertNotification))->Services->GetAt(0);
-	CharacteristicNewAlert = (co_await ServiceAlertNotification->GetCharacteristicsForUuidAsync(BluetoothUuidHelper::FromShortId(0x2a46)))->Characteristics->GetAt(0);
-	CharacteristicAlertNotificationControlPoint = (co_await ServiceAlertNotification->GetCharacteristicsForUuidAsync(BluetoothUuidHelper::FromShortId(0x2a44)))->Characteristics->GetAt(0);
-}
-
-concurrency::task<void> MiBand3::Authentication()
-{
-	co_await EnableAuthenticationNotifications();
-
-	// Request key. If the key stored on the device is different we send our key.
-	co_await RequestRandomKey();
-}
-
-concurrency::task<void> MiBand3::Run()
-{
-	std::cout << "Run initialized" << std::endl;
-
-	EnableHeartRateNotifications();
-
+	// Write a notification to check the connection
 	WriteMessage((uint8*)u8"� o �)>", 9);
 
 	// Sends a ping to keep alive the Heart Rate Monitoring
 	concurrency::call<int> HeartRatePingCallback([this](int) {
 		HeartRatePing();
+		std::wcout << "Ping!" << std::endl;
 		});
 
 	// Sets a timer to send the ping every 12 seconds
 	HeartRatePingTimer = new concurrency::timer<int>(
 		12000, 0, &HeartRatePingCallback, true);
-
 
 	// Creates a timer to delay start on the checkReset timer
 	concurrency::call<int> HeartRateCounterDelayCallback([this](int) {
@@ -106,27 +87,91 @@ concurrency::task<void> MiBand3::Run()
 		CheckReset();
 		});
 
-	HeartRateCounterTimer = new concurrency::timer<int>(7000, 0, &HeartRateCounterCallback, true);
+	HeartRateCounterTimer = new concurrency::timer<int>(
+		7000, 0, &HeartRateCounterCallback, true);
+	
+	// Start timers
+	HeartRatePingTimer->start();
+	HeartRateCounterDelayTimer->start();
 
-	HeartRateStart();
+	std::cout << "Started stardard HRM behaviour" << std::endl;
 
-	std::cout << "Started" << std::endl;
+	// Wait for event to stop
+	MonitoringStop.wait();
+	MonitoringStop.reset();
 
-	// Change for a wait or something
-	int a;
-	std::cin >> a;
-
-	HeartRateStop();
-
-	RC->StopClient();
-
-	std::cout << "Test finished" << std::endl;
+	std::cout << "After wait HRM" << std::endl;
 
 	co_return;
 }
 
-concurrency::task<Platform::Array<unsigned char>^> MiBand3::ReadFromCharacteristic(GenericAttributeProfile::GattCharacteristic^ Characteristic)
+// Gets the descriptors for the different services and characteristics of a MiBand 3
+// peripheral.
+concurrency::task<void> MiBand3::Initialize(BluetoothLEDevice^ InDevice)
 {
+	Device = InDevice;
+	// Authentication
+	ServiceAuthentication =
+		(co_await Device->GetGattServicesForUuidAsync(UUIDServiceAuthentication))
+		->Services->GetAt(0);
+	CharacteristicAuthentication =
+		(co_await ServiceAuthentication->
+			GetCharacteristicsForUuidAsync(GetGuidFromStringBase("0009")))
+		->Characteristics->GetAt(0);
+	DescriptorAuthentication =
+		(co_await CharacteristicAuthentication->
+			GetDescriptorsForUuidAsync(BluetoothUuidHelper::FromShortId(0x2902)))
+		->Descriptors->GetAt(0);
+	// Heart Rate Monitoring
+	ServiceHeartRate =
+		(co_await Device->GetGattServicesForUuidAsync(UUIDServiceHeartRate))
+		->Services->GetAt(0);
+	CharacteristicHeartRateControlPoint =
+		(co_await ServiceHeartRate->
+			GetCharacteristicsForUuidAsync(BluetoothUuidHelper::FromShortId(0x2a39)))
+		->Characteristics->GetAt(0);
+	CharacteristicHeartRateMeasurement =
+		(co_await ServiceHeartRate->
+			GetCharacteristicsForUuidAsync(
+				BluetoothUuidHelper::FromShortId(0x2a37)))
+		->Characteristics->GetAt(0);
+	DescriptorHeartRateMeasurement =
+		(co_await CharacteristicHeartRateMeasurement->GetDescriptorsForUuidAsync(
+			BluetoothUuidHelper::FromShortId(0x2902)))->Descriptors->GetAt(0);
+	// Messages
+	ServiceInmediateAlert =
+		(co_await Device->GetGattServicesForUuidAsync(UUIDServiceInmediateAlert))
+		->Services->GetAt(0);
+	CharacteristicAlert =
+		(co_await ServiceInmediateAlert->GetCharacteristicsForUuidAsync(
+			BluetoothUuidHelper::FromShortId(0x2a06)))->Characteristics->GetAt(0);
+
+	ServiceAlertNotification =
+		(co_await Device->GetGattServicesForUuidAsync(UUIDServiceAlertNotification))
+		->Services->GetAt(0);
+	CharacteristicNewAlert =
+		(co_await ServiceAlertNotification->GetCharacteristicsForUuidAsync(
+			BluetoothUuidHelper::FromShortId(0x2a46)))->Characteristics->GetAt(0);
+	CharacteristicAlertNotificationControlPoint =
+		(co_await ServiceAlertNotification->GetCharacteristicsForUuidAsync(
+			BluetoothUuidHelper::FromShortId(0x2a44)))->Characteristics->GetAt(0);
+}
+
+// Authenticates with the MiBand 3.
+concurrency::task<void> MiBand3::Authentication()
+{
+	// Enables the notifications about authentification and handles their responses
+	co_await EnableAuthenticationNotifications();
+
+	// Request key. If the key stored on the device is different we send our key
+	co_await RequestRandomKey();
+}
+
+// Reads the value from a given characteristic of the MiBand 3 periferal.
+concurrency::task<Platform::Array<unsigned char>^> MiBand3::ReadFromCharacteristic(
+	GenericAttributeProfile::GattCharacteristic^ Characteristic)
+{
+	// Attemps a reading
 	auto Data = co_await Characteristic->ReadValueAsync();
 	// If the reading succeeds, decode the reading and returns it as a byte array
 	if (Data->Status == GenericAttributeProfile::GattCommunicationStatus::Success)
@@ -364,11 +409,15 @@ void MiBand3::CheckReset()
 
 void MiBand3::HeartRateStart()
 {
-	RC->StartClient();
+	// Enable notifications
+	EnableHeartRateNotifications();
 
-	WriteToCharacteristic(CharacteristicHeartRateControlPoint, { 0x15, 0x02, 0x00 }); // Disable one-shot
-	WriteToCharacteristic(CharacteristicHeartRateControlPoint, { 0x15, 0x01, 0x00 }); // Disable continuous
-	WriteToCharacteristic(CharacteristicHeartRateControlPoint, { 0x15, 0x01, 0x01 }); // Enable continuous
+	// Disable one-shot
+	WriteToCharacteristic(CharacteristicHeartRateControlPoint, { 0x15, 0x02, 0x00 });
+	// Disable continuous
+	WriteToCharacteristic(CharacteristicHeartRateControlPoint, { 0x15, 0x01, 0x00 });
+	// Enable continuous
+	WriteToCharacteristic(CharacteristicHeartRateControlPoint, { 0x15, 0x01, 0x01 });
 
 	if (HeartRatePingTimer)
 	{
@@ -378,6 +427,9 @@ void MiBand3::HeartRateStart()
 	{
 		HeartRateCounterDelayTimer->start();
 	}
+	// Runs monitoring
+	RunHRM();
+
 }
 
 void MiBand3::HeartRatePing()
@@ -402,6 +454,8 @@ void MiBand3::HeartRateStop()
 	{
 		HeartRatePingTimer->pause();
 	}
+
+	MonitoringStop.set();
 }
 
 void MiBand3::Vibrate()
@@ -427,13 +481,13 @@ void MiBand3::WriteMessage(uint8* Message, uint32 MessageSize)
 	WriteToCharacteristic(CharacteristicNewAlert, Data);
 }
 
-void MiBand3::WriteToServer(Platform::String^ Message, bool pad, bool prepend)
+void MiBand3::WriteToServer(Platform::String^ Message, bool pad)
 {
-	InWriteToServer(Message, pad, prepend);
+	InWriteToServer(Message, pad);
 }
 
 concurrency::task<void> MiBand3::InWriteToServer(
-	Platform::String^ Message, bool pad, bool prepend)
+	Platform::String^ Message, bool pad)
 {
 	// Ignore if there's no client
 	if (RC->bClientConnected)
@@ -441,11 +495,6 @@ concurrency::task<void> MiBand3::InWriteToServer(
 		// Send a request to the HRM server.
 		auto Writer = ref new Windows::Storage::Streams::DataWriter(
 			RC->ClientSocket->OutputStream);
-
-		if (prepend) {
-			uint32 size = Message->Length();
-			Writer->WriteUInt32(size);
-		}
 
 		Writer->WriteString(Message);
 

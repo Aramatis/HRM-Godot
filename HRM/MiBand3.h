@@ -45,7 +45,7 @@ public:
 	void Vibrate();
 
 	void WriteToServer(
-		Platform::String^ Message, bool pad = false, bool prepend = false);
+		Platform::String^ Message, bool pad = false);
 
 	property Platform::Guid UUIDServiceInfo;
 	property Platform::Guid UUIDServiceAuthentication;
@@ -60,7 +60,7 @@ private:
 	concurrency::task<void> Initialize(BluetoothLEDevice^ InDevice);
 	concurrency::task<void> Authentication();
 
-	concurrency::task<void> Run();
+	concurrency::task<void> RunHRM();
 
 	concurrency::task<Platform::Array<unsigned char>^> ReadFromCharacteristic(GenericAttributeProfile::GattCharacteristic^ Characteristic);
 	concurrency::task<void> WriteToCharacteristic(GenericAttributeProfile::GattCharacteristic^ Characteristic, std::vector<unsigned char> Data);
@@ -85,7 +85,7 @@ private:
 	uint32 HeartRateLastCounter;
 
 	concurrency::task<void> InWriteToServer(
-		Platform::String^ Message, bool pad = false, bool prepend = false);
+		Platform::String^ Message, bool pad = false);
 
 	std::vector<unsigned char> Concat(std::vector<unsigned char> Prefix, std::vector<unsigned char> Data);
 
@@ -123,5 +123,7 @@ private:
 	concurrency::timer<int>* VibratePingTimer;
 
 	concurrency::event Authenticated;
+	concurrency::event Connected;
 	concurrency::event HeartMeasureReaded;
+	concurrency::event MonitoringStop;
 };
