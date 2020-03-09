@@ -10,15 +10,10 @@
 #include <ppltasks.h>
 #include <pplawait.h>
 #include <ppl.h>
-//#include <Windows.h>
 #include <collection.h>
-////#include <Windows.Foundation.h>
 #include <Windows.Devices.Bluetooth.h>
 #include <Windows.Devices.Enumeration.h>
 #include <Windows.Networking.Sockets.h>
-
-//#include <winrt/Windows.Foundation.h>
-
 #include <openssl/conf.h>
 #include <openssl/evp.h>
 #include <openssl/err.h>
@@ -27,7 +22,6 @@ using namespace Windows::Devices::Bluetooth;
 using namespace Windows::Devices::Enumeration;
 using namespace Windows::Networking::Sockets;
 using namespace Windows::Storage::Streams;
-
 
 ref class RemoteCommunication;
 
@@ -50,7 +44,8 @@ public:
 
 	void Vibrate();
 
-	void WriteToServer(Platform::String^ Message);
+	void WriteToServer(
+		Platform::String^ Message, bool pad = false);
 
 	property Platform::Guid UUIDServiceInfo;
 	property Platform::Guid UUIDServiceAuthentication;
@@ -62,22 +57,21 @@ public:
 
 private:
 	concurrency::task<void> InConnect(unsigned long long BluetoothAddress);
-	concurrency::task<void> Initialize(/*unsigned long long BluetoothAddress*/BluetoothLEDevice^ InDevice);
+	concurrency::task<void> Initialize(BluetoothLEDevice^ InDevice);
 	concurrency::task<void> Authentication();
 
-	concurrency::task<void> Run();
+	concurrency::task<void> RunHRM();
 
 	concurrency::task<Platform::Array<unsigned char>^> ReadFromCharacteristic(GenericAttributeProfile::GattCharacteristic^ Characteristic);
 	concurrency::task<void> WriteToCharacteristic(GenericAttributeProfile::GattCharacteristic^ Characteristic, std::vector<unsigned char> Data);
 	concurrency::task<void> WriteToDescriptor(GenericAttributeProfile::GattDescriptor^ Descriptor, std::vector<unsigned char> Data);
 
-	concurrency::task<void> EnableNotifications(GenericAttributeProfile::GattDescriptor^ Descriptor, GenericAttributeProfile::GattCharacteristic^ Characteristic, concurrency::task<void>(MiBand3::*HandleNotifications)(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args));
+	concurrency::task<void> EnableNotifications(GenericAttributeProfile::GattDescriptor^ Descriptor, GenericAttributeProfile::GattCharacteristic^ Characteristic, concurrency::task<void>(MiBand3::* HandleNotifications)(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args));
 	concurrency::task<void> EnableAuthenticationNotifications();
 	concurrency::task<void> HandleAuthenticationNotifications(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args);
 	concurrency::task<void> SendNewKey(std::vector<unsigned char> Key);
 	concurrency::task<void> RequestRandomKey();
 	concurrency::task<void> SendEncryptedKey(std::vector<unsigned char> Encrypted);
-
 
 	concurrency::task<void> HandleHeartRateNotifications(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args);
 
@@ -87,21 +81,15 @@ private:
 
 	void CheckReset();
 
+	uint32 HeartRateCounter;
+	uint32 HeartRateLastCounter;
 
-
-	uint8 HeartRateCounter;
-	uint8 HeartRateLastCounter;
-
-
-
-
-	concurrency::task<void> InWriteToServer(Platform::String^ Message);
-
+	concurrency::task<void> InWriteToServer(
+		Platform::String^ Message, bool pad = false);
 
 	std::vector<unsigned char> Concat(std::vector<unsigned char> Prefix, std::vector<unsigned char> Data);
 
-
-	std::vector<unsigned char> Encrypt(unsigned char *Data, unsigned char *Key);
+	std::vector<unsigned char> Encrypt(unsigned char* Data, unsigned char* Key);
 	Platform::Guid GetGuidFromString(std::string Guid);
 	Platform::Guid GetGuidFromStringBase(std::string SubGuid);
 
@@ -129,11 +117,13 @@ private:
 	GenericAttributeProfile::GattCharacteristic^ CharacteristicAlertNotificationControlPoint;
 	GenericAttributeProfile::GattDescriptor^ DescriptorClientCharacteristicConfiguration;
 
-	concurrency::timer<int> *HeartRatePingTimer;
-	concurrency::timer<int> *HeartRateCounterTimer;
-	concurrency::timer<int> *HeartRateCounterDelayTimer;
-	concurrency::timer<int> *VibratePingTimer;
+	concurrency::timer<int>* HeartRatePingTimer;
+	concurrency::timer<int>* HeartRateCounterTimer;
+	concurrency::timer<int>* HeartRateCounterDelayTimer;
+	concurrency::timer<int>* VibratePingTimer;
 
 	concurrency::event Authenticated;
+	concurrency::event Connected;
 	concurrency::event HeartMeasureReaded;
+	concurrency::event MonitoringStop;
 };

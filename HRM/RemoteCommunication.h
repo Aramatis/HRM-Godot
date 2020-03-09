@@ -9,14 +9,10 @@
 #include <ppltasks.h>
 #include <pplawait.h>
 #include <ppl.h>
-//#include <Windows.h>
 #include <collection.h>
-////#include <Windows.Foundation.h>
 #include <Windows.Devices.Bluetooth.h>
 #include <Windows.Devices.Enumeration.h>
 #include <Windows.Networking.Sockets.h>
-
-//#include <winrt/Windows.Foundation.h>
 
 using namespace Windows::Devices::Bluetooth;
 using namespace Windows::Devices::Enumeration;
@@ -30,9 +26,9 @@ ref class RemoteCommunication sealed
 public:
 	RemoteCommunication(MiBand3^ InMiBand);
 
-	void StartClient();
+	void StartClient(int tries = 5);
 	void StopClient();
-	void StartServer();
+	void StartServer(int tries = 5);
 
 	property Windows::Networking::Sockets::StreamSocket^ ClientSocket;
 	property Windows::Networking::Sockets::StreamSocketListener^ ServerSocket;
@@ -41,18 +37,13 @@ public:
 	property bool bServerRunning;
 
 private:
-
 	MiBand3^ MiBand;
-
-
 
 	Platform::String^ RCHostName = L"localhost";
 	Platform::String^ ClientPort = L"1242";
 	Platform::String^ ServerPort = L"1243";
 
 	bool bWaitingClientConnection;
-
-
 
 	void OnConnection(StreamSocketListener^ Listener, StreamSocketListenerConnectionReceivedEventArgs^ Args);
 
@@ -79,4 +70,3 @@ private:
 	 */
 	void ReceiveStringLoop(DataReader^ Reader, StreamSocket^ Socket);
 };
-
