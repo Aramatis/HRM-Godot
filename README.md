@@ -1,2 +1,3 @@
-# HRM
- Heart Rate Module for Ragelite. Allows to use a Xiaomi Mi Band to control its difficulty.
+# HRM-Godot
+
+Heart Rate Module for Xiaomi MiBands, to enable their manipulation and use within Godot Engine. Fork of the [HRM repo](https://www.github.com/elixs/HRM) made by [elixs](https://www.github.com/elixs).

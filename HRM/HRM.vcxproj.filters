@@ -24,6 +24,9 @@
     <ClInclude Include="RemoteCommunication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BlthUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -36,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RemoteCommunication.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BlthUtil.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
