@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pch.h"
+#include "BlthUtil.h"
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -22,6 +23,7 @@ using namespace Windows::Devices::Bluetooth;
 using namespace Windows::Devices::Enumeration;
 using namespace Windows::Networking::Sockets;
 using namespace Windows::Storage::Streams;
+using namespace BluetoothUtilities;
 
 ref class RemoteCommunication;
 

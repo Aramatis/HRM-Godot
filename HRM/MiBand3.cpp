@@ -67,7 +67,6 @@ concurrency::task<void> MiBand3::RunHRM()
 	// Sends a ping to keep alive the Heart Rate Monitoring
 	concurrency::call<int> HeartRatePingCallback([this](int) {
 		HeartRatePing();
-		std::wcout << "Ping!" << std::endl;
 		});
 
 	// Sets a timer to send the ping every 12 seconds
@@ -89,7 +88,7 @@ concurrency::task<void> MiBand3::RunHRM()
 
 	HeartRateCounterTimer = new concurrency::timer<int>(
 		7000, 0, &HeartRateCounterCallback, true);
-	
+
 	// Start timers
 	HeartRatePingTimer->start();
 	HeartRateCounterDelayTimer->start();
@@ -533,73 +532,4 @@ std::vector<unsigned char> MiBand3::Encrypt(unsigned char* Data, unsigned char* 
 	EVP_EncryptFinal_ex(Context, Encrypted + OutLenght, &OutLenght);
 	EVP_CIPHER_CTX_free(Context);
 	return std::vector<unsigned char>(Encrypted, Encrypted + 16);
-}
-
-// Example 00000009-0000-3512-2118-0009af100700
-Platform::Guid MiBand3::GetGuidFromString(std::string Guid)
-{
-	unsigned int a;
-	unsigned short b;
-	unsigned short c;
-	unsigned short d;
-	unsigned short e;
-	unsigned short f;
-	unsigned short g;
-	unsigned short h;
-	unsigned short i;
-	unsigned short j;
-	unsigned short k;
-
-	std::stringstream ss;
-	ss << std::hex;
-	ss << Guid.substr(0, 8);
-	ss >> a;
-	ss.clear();
-	ss.str(std::string());
-	ss << Guid.substr(9, 4);
-	ss >> b;
-	ss.clear();
-	ss.str(std::string());
-	ss << Guid.substr(14, 4);
-	ss >> c;
-	ss.clear();
-	ss.str(std::string());
-	ss << Guid.substr(19, 2);
-	ss >> d;
-	ss.clear();
-	ss.str(std::string());
-	ss << Guid.substr(21, 2);
-	ss >> e;
-	ss.clear();
-	ss.str(std::string());
-	ss << Guid.substr(24, 2);
-	ss >> f;
-	ss.clear();
-	ss.str(std::string());
-	ss << Guid.substr(26, 2);
-	ss >> g;
-	ss.clear();
-	ss.str(std::string());
-	ss << Guid.substr(28, 2);
-	ss >> h;
-	ss.clear();
-	ss.str(std::string());
-	ss << Guid.substr(30, 2);
-	ss >> i;
-	ss.clear();
-	ss.str(std::string());
-	ss << Guid.substr(32, 2);
-	ss >> j;
-	ss.clear();
-	ss.str(std::string());
-	ss << Guid.substr(34, 2);
-	ss >> k;
-	return Platform::Guid(a, b, c, (unsigned char)d, (unsigned char)e,
-		(unsigned char)f, (unsigned char)g, (unsigned char)h, (unsigned char)i,
-		(unsigned char)j, (unsigned char)k);
-}
-
-Platform::Guid MiBand3::GetGuidFromStringBase(std::string SubGuid)
-{
-	return GetGuidFromString("0000" + SubGuid + "-0000-3512-2118-0009af100700");
 }
