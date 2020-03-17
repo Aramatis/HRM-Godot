@@ -17,6 +17,6 @@ namespace BluetoothUtilities
 	unsigned long long FormatBluetoothAddressInverse(
 		Platform::Array<uint8>^ BluetoothAddress);
 	void scan(MiBand3^ band);
-	Platform::Guid BluetoothUtilities::GetGuidFromStringBase(std::string SubGuid);
-	Platform::Guid BluetoothUtilities::GetGuidFromStringBase(std::string SubGuid);
+	Platform::Guid GetGuidFromStringBase(std::string SubGuid);
+	Platform::Guid GetGuidFromString(std::string Guid);
 }
