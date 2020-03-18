@@ -54,14 +54,15 @@ unsigned long long BluetoothUtilities::FormatBluetoothAddressInverse(
 	return Address;
 }
 
-// Scans for MiBand 3 peripherals to connect to and sends them to the client of the
-// given MiBand3 object.
+// Scans for MiBand 3 peripherals to connect to and sends them to the client of
+// the given MiBand3 object.
 void BluetoothUtilities::scan(MiBand3^ band)
 {
 	std::wcout << "BLE Scanner started" << std::endl;
 
 	// Creates a new Bluetooth advertiser and sets it into scanning mode
-	Advertisement::BluetoothLEAdvertisementWatcher^ AdWatcher = ref new Advertisement::BluetoothLEAdvertisementWatcher();
+	Advertisement::BluetoothLEAdvertisementWatcher^ AdWatcher = 
+		ref new Advertisement::BluetoothLEAdvertisementWatcher();
 	AdWatcher->ScanningMode =
 		Advertisement::BluetoothLEScanningMode::Active;
 	// Set the scanner to send every found device to the client
@@ -70,7 +71,8 @@ void BluetoothUtilities::scan(MiBand3^ band)
 		Advertisement::BluetoothLEAdvertisementReceivedEventArgs^>(
 			[AdWatcher, band](
 				Advertisement::BluetoothLEAdvertisementWatcher^ Watcher,
-				Advertisement::BluetoothLEAdvertisementReceivedEventArgs^ EventArgs)
+				Advertisement::
+				BluetoothLEAdvertisementReceivedEventArgs^ EventArgs)
 			{
 				unsigned int Index;
 				if (EventArgs->Advertisement->ServiceUuids->

@@ -45,7 +45,8 @@ private:
 
 	bool bWaitingClientConnection;
 
-	void OnConnection(StreamSocketListener^ Listener, StreamSocketListenerConnectionReceivedEventArgs^ Args);
+	void OnConnection(StreamSocketListener^ Listener, 
+		StreamSocketListenerConnectionReceivedEventArgs^ Args);
 
 	/**
 	 * Instructions structure
