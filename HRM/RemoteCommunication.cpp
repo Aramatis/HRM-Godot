@@ -10,12 +10,14 @@
 
 using namespace BluetoothUtilities;
 
-// Class that handles the remote communication between this HRM module and external
-// servers and connectors. Requires a MiBand3 reference, but no extra methods invoked
-// after initialization. It's automtically created when creating a MiBand3 object.
+// Class that handles the remote communication between this HRM module and
+// external servers and connectors. Requires a MiBand3 reference, but no extra
+// methods invoked after initialization. It's automtically created when creating
+// a MiBand3 object.
 RemoteCommunication::RemoteCommunication(MiBand3^ InMiBand) : MiBand(InMiBand)
 {
-	// Create a StreamSocket to establish a connection to the external HRM server.
+	// Create a StreamSocket to establish a connection to the external HRM
+	// server.
 	ClientSocket = ref new StreamSocket();
 	// Initialize variables
 	bClientConnected = false;
@@ -25,8 +27,8 @@ RemoteCommunication::RemoteCommunication(MiBand3^ InMiBand) : MiBand(InMiBand)
 	StartServer();
 }
 
-// Establishes a connection to the external HRM server. It NEEDS the external server
-// to be already listening on the connection port.
+// Establishes a connection to the external HRM server. It NEEDS the external
+// server to be already listening on the connection port.
 void RemoteCommunication::StartClient(int tries)
 {
 	// When there's no external connection
@@ -41,7 +43,8 @@ void RemoteCommunication::StartClient(int tries)
 		// Hostname of the external HRM server.
 		auto InHostName = ref new Windows::Networking::HostName(RCHostName);
 		// Attempt to connect to the server through the ClientPort port.
-		concurrency::create_task(ClientSocket->ConnectAsync(InHostName, ClientPort))
+		concurrency::create_task(ClientSocket->ConnectAsync(InHostName,
+			ClientPort))
 			.then([this, tries](concurrency::task<void> PreviousTask) {
 			try
 			{
@@ -56,7 +59,7 @@ void RemoteCommunication::StartClient(int tries)
 				std::cout << "The client couldn't connect with the server"
 					<< std::endl;
 				std::wcout << Ex->ToString()->Begin() << std::endl;
-				
+
 				SocketErrorStatus WebErrorStatus =
 					SocketError::GetStatus(Ex->HResult);
 				std::cout << (WebErrorStatus.ToString()
@@ -73,8 +76,8 @@ void RemoteCommunication::StartClient(int tries)
 	}
 }
 
-// Stops an established connection to an external HRM server. If there's no active
-// connection it's just ignored.
+// Stops an established connection to an external HRM server. If there's no
+// active connection it's just ignored.
 void RemoteCommunication::StopClient()
 {
 	if (bClientConnected)
@@ -87,8 +90,8 @@ void RemoteCommunication::StopClient()
 }
 
 
-// Starts a server to receive connections from an external connector. It's called
-// automatically on this object's creation.
+// Starts a server to receive connections from an external connector. It's
+// called automatically on this object's creation.
 void RemoteCommunication::StartServer(int tries)
 {
 	// Create new listener for a socket
@@ -138,16 +141,17 @@ void RemoteCommunication::OnConnection(StreamSocketListener^ Listener,
 	ReceiveStringLoop(Reader, Args->Socket);
 }
 
-// Server message handling loop. A properly formatted message indicates its ID on the
-// first byte and on the remaining ones gives the payload in accordance to its ID.  
+// Server message handling loop. A properly formatted message indicates its ID
+// on the first byte and on the remaining ones gives the payload in accordance
+// to its ID.
 void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 	StreamSocket^ Socket)
 {
-	// Read the first byte to retrive the instruction ID
+	// Read the first byte to retrieve the instruction ID
 	concurrency::create_task(Reader->LoadAsync(sizeof(byte))).then(
 		[this, Reader, Socket](unsigned int Size) {
-			// If the size loaded was smaller than the size of a byte the socket was 
-			// closed before reading the whole data.
+			// If the size loaded was smaller than the size of a byte the socket
+			// was closed before reading the whole data.
 			if (Size < sizeof(byte))
 			{
 				concurrency::cancel_current_task();
@@ -158,13 +162,14 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 
 			std::wcout << "Received instruction, ID = " << Id << std::endl;
 
-			// ID = 0 is an instruction to start (true) or stop (false) the client. 
+			// ID = 0 is an instruction to start (true) or stop (false) the
+			// client. 
 			if (Id == 0)
 			{
 				return concurrency::create_task(Reader->LoadAsync(sizeof(bool)))
 					.then([this, Reader](unsigned int Size) {
-					// If the size loaded was smaller than the size of a bool the 
-					// socket was closed before reading the whole data.
+					// If the size loaded was smaller than the size of a bool
+					// the socket was closed before reading the whole data.
 					if (Size < sizeof(bool))
 					{
 						concurrency::cancel_current_task();
@@ -172,32 +177,32 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 					// Read the instruction
 					bool bStart = Reader->ReadBoolean();
 					// Start or stop the client
-					if (bStart == 0)
+					if (bStart)
 					{
-						std::cout << "Stop client" << std::endl;
-						StopClient();
+						StartClient();
 					}
 					else
 					{
-						std::cout << "Start client" << std::endl;
-						StartClient();
+						StopClient();
 					}
 						});
 			}
-			// ID = 1 is an instruction to scan for peripherals for 20 seconds and
-			// send the addresses of the ones found. It carries no payload.
+			// ID = 1 is an instruction to scan for peripherals for 20 seconds
+			// and send the addresses of the ones found. It carries no payload.
 			if (Id == 1)
 			{
 				// Start the scanner with the current MiBand3
 				scan(MiBand);
 			}
-			// ID = 2 is an instruction to connect to a MiBand3 in the given address.
+			// ID = 2 is an instruction to connect to a MiBand3 in the given
+			// address.
 			else if (Id == 2)
 			{
-				return concurrency::create_task(Reader->LoadAsync(sizeof(uint32)))
+				return concurrency::create_task(
+					Reader->LoadAsync(sizeof(uint32)))
 					.then([this, Reader](unsigned int Size) {
-					// If the size loaded was smaller than the size of a uint32 the 
-					// socket was closed before reading the whole size data.
+					// If the size loaded was smaller than the size of a uint32
+					// the socket was closed before reading the whole size data.
 					if (Size < sizeof(uint32))
 					{
 						concurrency::cancel_current_task();
@@ -206,12 +211,12 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 					// Read the size (in bytes) of the address
 					uint32 MessageSize = Reader->ReadUInt32();
 
-					std::wcout << "Message size: " << MessageSize << std::endl;
-
-					return concurrency::create_task(Reader->LoadAsync(MessageSize))
+					return concurrency::create_task(
+						Reader->LoadAsync(MessageSize))
 						.then([this, Reader, MessageSize](unsigned int Size) {
-						// If the size loaded was smaller than the size indicated the
-						// socket was closed before reading the whole message data.
+						// If the size loaded was smaller than the size
+						// indicated the socket was closed before reading the
+						// whole message data.
 						if (Size < MessageSize)
 						{
 							concurrency::cancel_current_task();
@@ -223,14 +228,13 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 						Reader->ReadBytes(Message);
 						auto Address = FormatBluetoothAddressInverse(Message);
 
-						std::wcout << "Message: " << Address << std::endl;
-
 						// Connect to the given address
 						MiBand->Connect(Address);
 							});
 						});
 			}
-			// All the following IDs require a MiBand3 connected and authenticated.
+			// All the following IDs require a MiBand3 connected and
+			// authenticated.
 			else if (MiBand->bAuthenticated)
 			{
 				// ID = 3 is an instruction to write a message to the connected
@@ -240,8 +244,9 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 					return concurrency::create_task(
 						Reader->LoadAsync(sizeof(uint32)))
 						.then([this, Reader](unsigned int Size) {
-						// If the size loaded was smaller than the size of a uint32
-						// the socket was closed before reading the whole size data.
+						// If the size loaded was smaller than the size of a
+						// uint32 the socket was closed before reading the whole
+						// size data.
 						if (Size < sizeof(uint32))
 						{
 							concurrency::cancel_current_task();
@@ -251,35 +256,36 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 
 						return concurrency::create_task(
 							Reader->LoadAsync(MessageSize))
-							.then([this, Reader, MessageSize](unsigned int Size) {
-							// If the size loaded was smaller than the size indicated
-							// the socket was closed before reading the whole message
-							// data.
-							if (Size < MessageSize)
-							{
-								concurrency::cancel_current_task();
-							}
+							.then([this, Reader, MessageSize](unsigned int Size)
+								{
+									// If the size loaded was smaller than the
+									// size indicated the socket was closed
+									// before reading the whole message data.
+									if (Size < MessageSize)
+									{
+										concurrency::cancel_current_task();
+									}
 
-							// Allocate space and read the message
-							Platform::Array<uint8>^ Message =
-								ref new Platform::Array<uint8>(Size);
-							Reader->ReadBytes(Message);
+									// Allocate space and read the message
+									Platform::Array<uint8>^ Message =
+										ref new Platform::Array<uint8>(Size);
+									Reader->ReadBytes(Message);
 
-							// Write message to the MiBand3
-							MiBand->WriteMessage(Message->Data, Size);
+									// Write message to the MiBand3
+									MiBand->WriteMessage(Message->Data, Size);
 								});
 							});
 				}
-				// ID = 4 is an instruction to start (true) or stop (false) the Heart
-				// Rate Monitoring.
+				// ID = 4 is an instruction to start (true) or stop (false) the
+				// Heart Rate Monitoring.
 				else if (Id == 4)
 				{
-					std::wcout << "Inside ID 4" << std::endl;
-					return concurrency::create_task(Reader->LoadAsync(sizeof(bool)))
+					return concurrency::create_task(
+						Reader->LoadAsync(sizeof(bool)))
 						.then([this, Reader](unsigned int Size) {
-						// If the size loaded was smaller than the size of a bool the 
-						// socket was closed before reading the whole data.
-						std::wcout << "Size: " << Size << std::endl;
+						// If the size loaded was smaller than the size of a
+						// bool the socket was closed before reading the whole
+						// data.
 						if (Size < sizeof(bool))
 						{
 							concurrency::cancel_current_task();
@@ -298,15 +304,16 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 						}
 							});
 				}
-				// ID = 5 is an instruction to vibrate the MiBand3 for the given 
+				// ID = 5 is an instruction to vibrate the MiBand3 for the given
 				// amoumt of milliseconds.
 				else if (Id == 5)
 				{
 					return concurrency::create_task(Reader->
 						LoadAsync(sizeof(uint16)))
 						.then([this, Reader](unsigned int Size) {
-						// If the size loaded was smaller than the size of a uint16
-						// the socket was closed before reading the whole data.
+						// If the size loaded was smaller than the size of a
+						// uint16 the socket was closed before reading the whole
+						// data.
 						if (Size < sizeof(uint16))
 						{
 							concurrency::cancel_current_task();
@@ -319,8 +326,9 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 							});
 				}
 
-				// ID = 6 is an instruction to vibrate the MiBand3 for the standard
-				// amoumt of milliseconds. It isn't followed by any payload.
+				// ID = 6 is an instruction to vibrate the MiBand3 for the
+				// standard amoumt of milliseconds. It isn't followed by any
+				// payload.
 				else if (Id == 6)
 				{
 					// Vibrate the MiBand3
@@ -340,13 +348,15 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 			}
 			catch (Platform::Exception ^ Ex)
 			{
-				std::cout << "Read stream failed with error: " << Ex->Message->Data() << std::endl;
+				std::cout << "Read stream failed with error: "
+					<< Ex->Message->Data() << std::endl;
 				// Explicitly close the socket.
 				delete Socket;
 			}
 			catch (concurrency::task_canceled&)
 			{
-				// Do not print anything here - this will usually happen because user closed the client socket.
+				// Do not print anything here - this will usually happen because
+				// user closed the client socket.
 
 				// Explicitly close the socket.
 				delete Socket;

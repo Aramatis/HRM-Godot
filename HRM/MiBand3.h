@@ -23,7 +23,6 @@ using namespace Windows::Devices::Bluetooth;
 using namespace Windows::Devices::Enumeration;
 using namespace Windows::Networking::Sockets;
 using namespace Windows::Storage::Streams;
-using namespace BluetoothUtilities;
 
 ref class RemoteCommunication;
 
@@ -62,22 +61,38 @@ private:
 	concurrency::task<void> Initialize(BluetoothLEDevice^ InDevice);
 	concurrency::task<void> Authentication();
 
-	concurrency::task<void> RunHRM();
+	void RunHRM();
 
-	concurrency::task<Platform::Array<unsigned char>^> ReadFromCharacteristic(GenericAttributeProfile::GattCharacteristic^ Characteristic);
-	concurrency::task<void> WriteToCharacteristic(GenericAttributeProfile::GattCharacteristic^ Characteristic, std::vector<unsigned char> Data);
-	concurrency::task<void> WriteToDescriptor(GenericAttributeProfile::GattDescriptor^ Descriptor, std::vector<unsigned char> Data);
+	concurrency::task<Platform::Array<unsigned char>^> ReadFromCharacteristic(
+		GenericAttributeProfile::GattCharacteristic^ Characteristic);
+	concurrency::task<void> WriteToCharacteristic(
+		GenericAttributeProfile::GattCharacteristic^ Characteristic,
+		std::vector<unsigned char> Data);
+	concurrency::task<void> WriteToDescriptor(
+		GenericAttributeProfile::GattDescriptor^ Descriptor, 
+		std::vector<unsigned char> Data);
 
-	concurrency::task<void> EnableNotifications(GenericAttributeProfile::GattDescriptor^ Descriptor, GenericAttributeProfile::GattCharacteristic^ Characteristic, concurrency::task<void>(MiBand3::* HandleNotifications)(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args));
+	concurrency::task<void> EnableNotifications(
+		GenericAttributeProfile::GattDescriptor^ Descriptor, 
+		GenericAttributeProfile::GattCharacteristic^ Characteristic, 
+		concurrency::task<void>(MiBand3::* HandleNotifications)(
+			GenericAttributeProfile::GattCharacteristic^ Sender,
+			GenericAttributeProfile::GattValueChangedEventArgs^ Args));
 	concurrency::task<void> EnableAuthenticationNotifications();
-	concurrency::task<void> HandleAuthenticationNotifications(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args);
+	concurrency::task<void> HandleAuthenticationNotifications(
+		GenericAttributeProfile::GattCharacteristic^ Sender, 
+		GenericAttributeProfile::GattValueChangedEventArgs^ Args);
 	concurrency::task<void> SendNewKey(std::vector<unsigned char> Key);
 	concurrency::task<void> RequestRandomKey();
-	concurrency::task<void> SendEncryptedKey(std::vector<unsigned char> Encrypted);
+	concurrency::task<void> SendEncryptedKey(
+		std::vector<unsigned char> Encrypted);
 
-	concurrency::task<void> HandleHeartRateNotifications(GenericAttributeProfile::GattCharacteristic^ Sender, GenericAttributeProfile::GattValueChangedEventArgs^ Args);
+	concurrency::task<void> HandleHeartRateNotifications(
+		GenericAttributeProfile::GattCharacteristic^ Sender, 
+		GenericAttributeProfile::GattValueChangedEventArgs^ Args);
 
-	std::string FormatHeartRate(const Platform::Array<unsigned char>^ HeartRate);
+	std::string FormatHeartRate(
+		const Platform::Array<unsigned char>^ HeartRate);
 
 	concurrency::task<void> HeartRateDefault();
 
@@ -89,15 +104,16 @@ private:
 	concurrency::task<void> InWriteToServer(
 		Platform::String^ Message, bool pad = false);
 
-	std::vector<unsigned char> Concat(std::vector<unsigned char> Prefix, std::vector<unsigned char> Data);
+	std::vector<unsigned char> Concat(
+		std::vector<unsigned char> Prefix, std::vector<unsigned char> Data);
 
 	std::vector<unsigned char> Encrypt(unsigned char* Data, unsigned char* Key);
-	Platform::Guid GetGuidFromString(std::string Guid);
-	Platform::Guid GetGuidFromStringBase(std::string SubGuid);
 
 private:
 	// Must be generated randomly
-	std::vector<unsigned char> AuthKey{ 0x75, 0xa8, 0xd5, 0x03, 0xc8, 0x3f, 0x66, 0x44, 0x18, 0xe3, 0x96, 0x9d, 0x67, 0x17, 0x2e, 0xaa };
+	std::vector<unsigned char> AuthKey{ 
+		0x75, 0xa8, 0xd5, 0x03, 0xc8, 0x3f, 0x66, 0x44, 0x18,
+		0xe3, 0x96, 0x9d, 0x67, 0x17, 0x2e, 0xaa };
 
 	BluetoothLEDevice^ Device;
 
@@ -106,8 +122,10 @@ private:
 	GenericAttributeProfile::GattDescriptor^ DescriptorAuthentication;
 
 	GenericAttributeProfile::GattDeviceService^ ServiceHeartRate;
-	GenericAttributeProfile::GattCharacteristic^ CharacteristicHeartRateControlPoint;
-	GenericAttributeProfile::GattCharacteristic^ CharacteristicHeartRateMeasurement;
+	GenericAttributeProfile::
+		GattCharacteristic^ CharacteristicHeartRateControlPoint;
+	GenericAttributeProfile::
+		GattCharacteristic^ CharacteristicHeartRateMeasurement;
 	GenericAttributeProfile::GattDescriptor^ DescriptorHeartRateMeasurement;
 
 	GenericAttributeProfile::GattDeviceService^ ServiceInmediateAlert;
@@ -115,17 +133,23 @@ private:
 
 	GenericAttributeProfile::GattDeviceService^ ServiceAlertNotification;
 	GenericAttributeProfile::GattCharacteristic^ CharacteristicNewAlert;
-	GenericAttributeProfile::GattDescriptor^ DescriptorCharacteristicUserDescription;
-	GenericAttributeProfile::GattCharacteristic^ CharacteristicAlertNotificationControlPoint;
-	GenericAttributeProfile::GattDescriptor^ DescriptorClientCharacteristicConfiguration;
+	GenericAttributeProfile::
+		GattDescriptor^ DescriptorCharacteristicUserDescription;
+	GenericAttributeProfile::
+		GattCharacteristic^ CharacteristicAlertNotificationControlPoint;
+	GenericAttributeProfile::
+		GattDescriptor^ DescriptorClientCharacteristicConfiguration;
 
 	concurrency::timer<int>* HeartRatePingTimer;
 	concurrency::timer<int>* HeartRateCounterTimer;
 	concurrency::timer<int>* HeartRateCounterDelayTimer;
 	concurrency::timer<int>* VibratePingTimer;
 
+	concurrency::call<int>* HeartRatePingCallback;
+	concurrency::call<int>* HeartRateCounterDelayCallback;
+	concurrency::call<int>* HeartRateCounterCallback;
+
 	concurrency::event Authenticated;
 	concurrency::event Connected;
 	concurrency::event HeartMeasureReaded;
-	concurrency::event MonitoringStop;
 };
