@@ -49,6 +49,9 @@ concurrency::task<void> MiBand3::InConnect(unsigned long long BluetoothAddress)
 	bAuthenticated = true;
 	Authenticated.reset();
 	Connected.set();
+	// Indicates to the server that the connection to the MiBand 3 was
+	// successful
+	WriteToServer("200", true);
 }
 
 // Standard HRM behaviour
