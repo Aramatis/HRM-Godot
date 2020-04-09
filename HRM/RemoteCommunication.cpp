@@ -187,12 +187,28 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 					}
 						});
 			}
-			// ID = 1 is an instruction to scan for peripherals for 20 seconds
-			// and send the addresses of the ones found. It carries no payload.
+			// ID = 1 is an instruction to scan for peripherals for the given
+			// amount of seconds and send the addresses of the ones found.
 			if (Id == 1)
 			{
-				// Start the scanner with the current MiBand3
-				scan(MiBand);
+				// Start the scanner with the current MiBand3 for the seconds 
+				// given
+				return concurrency::create_task(Reader->
+					LoadAsync(sizeof(uint16)))
+					.then([this, Reader](unsigned int Size) {
+					// If the size loaded was smaller than the size of a
+					// uint16 the socket was closed before reading the whole
+					// data.
+					if (Size < sizeof(uint16))
+					{
+						concurrency::cancel_current_task();
+					}
+
+					// Read the messsage
+					uint16 seconds = Reader->ReadUInt16();
+					// Scan the given seconds
+					scan(MiBand, seconds);
+						});
 			}
 			// ID = 2 is an instruction to connect to a MiBand3 in the given
 			// address.
@@ -320,9 +336,9 @@ void RemoteCommunication::ReceiveStringLoop(DataReader^ Reader,
 						}
 
 						// Read the messsage
-						uint16 Seconds = Reader->ReadUInt16();
+						uint16 milliseconds = Reader->ReadUInt16();
 						// Vibrate the MiBand3
-						MiBand->Vibrate(Seconds);
+						MiBand->Vibrate(milliseconds);
 							});
 				}
 
